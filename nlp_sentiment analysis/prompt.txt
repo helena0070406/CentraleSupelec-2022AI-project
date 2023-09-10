@@ -1,0 +1,207 @@
+I have a Natural Language Processing assignment  on Aspect-Term Polarity
+Classification in Sentiment Analysis and I need you to help on how to get started based on the information I will provide you: which software to use, how to setup the virtual environment and use it and finally propose an implementation by completing the 2 python files to solve the assignment.
+
+# Information of the assignment
+The goal of this assignment is to implement a classifier that predicts opinion polarities (positive, negative or neutral) for given aspect terms in sentences. The classifier takes as input 3 elements: a sentence, an aspect term occurring in the sentence, and its aspect category. For each input triple, it produces a polarity label: positive, negative or neutral.
+
+The dataset is in TSV format, one instance per line. As an example, here are 2 instances:
+negative SERVICE#GENERAL Wait staff 0:10 Wait staff is blantently unappreciative of your business but its the best pie on the UWS!
+positive FOOD#QUALITY pie 74:77 Wait staff is blantently unappreciative of your business but its the best pie on the UWS!
+
+Each line contains 5 tab-separated fields: the polarity of the opinion (the ground truth polarity label),
+the aspect category on which the opinion is expressed, a specific target term, the character offsets
+of the term (start:end), and the sentence in which the term occurs and the opinion is expressed.
+For instance, in the first line, the opinion polarity regarding the target term "wait staff", which has
+the aspect category SERVICE#GENERAL, is negative.In the example of the second line, the sentence
+is the same but the opinion is about a different aspect and a different target term (pie), and is
+positive.
+
+There are 12 different aspects categories:
+AMBIENCE#GENERAL
+DRINKS#PRICES
+DRINKS#QUALITY
+DRINKS#STYLE_OPTIONS
+FOOD#PRICES
+FOOD#QUALITY
+FOOD#STYLE_OPTIONS
+LOCATION#GENERAL
+RESTAURANT#GENERAL
+RESTAURANT#MISCELLANEOUS
+RESTAURANT#PRICES
+SERVICE#GENERAL
+
+The training set (filename: traindata.csv) has this format (5 fields) and contains 1503 lines, i.e.
+1503 opinions. The classifier should be learned only from this training set.
+A development dataset (filename: devdata.csv) is distributed to help you set up your classifier
+and estimate its performance. It has the same format as the training dataset. It has 376 lines, i.e. 376
+opinions.
+We will perform the final evaluation by measuring the accuracy of the classifier on a test dataset that
+is not distributed. The majority class of the dev set is about 70% (positive labels), and will be
+considered as a (weak) baseline.
+
+# How to proceed
+1. Create a python environment and install/use python >= 3.9.x (required). Besides the
+standard python modules, you can use the following libraries:
+a. pytorch = 1.13.1
+b. pytorch-lightning = 1.8.1
+c. transformers = 4.22.2
+d. datasets = 2.9.0 (just the library ‘datasets’, no labelled data)
+e. sentencepiece = 0.1.97
+f. scikit-learn = 1.2.0
+g. numpy = 1.23.5
+h. pandas = 1.5.3
+i. nltk = 3.8.1
+j. stanza = 1.4.2
+2. Download the nlp_assignment.zip file and uncompress it to a dedicated root folder. The root
+folder will contain 2 subfolders:
+a. data: contains traindata.csv and devdata.csv
+b. src: contains 2 python files: tester.py, classifier.py
+3. Implement your classifier by completing the "Classifier" class template in src/classifier.py,
+containing the following 2 methods:
+a. The train method takes training data file and a dev data file as input, and trains the
+model on the specified device
+b. The predict method takes a data file (e.g. devdata.csv), it should run on the specified
+device return a python list of predicted labels. The returned list contains the
+predicted labels in the same order as the corresponding examples in the input file
+4. You can create new python files in the src subfolder, if needed to implement the classifier.
+5. Run the model using the device specified as a parameter in the train() and predict() methods.
+Please do not use a default device (like ‘cuda’ or ‘cuda:0’)! Also, the model should not
+require more than 14GB of memory to run on the data (that’s the limit of the GPU device on
+which the program will be evaluated).
+6. To check and test your classifier, cd to the src subfolder and run tester.py. It should run
+without errors, training the model on traindata.csv and evaluating it on devdata.csv, and
+reporting the accuracy measure.
+
+# 2 python files to complete in order to solve the assignment
+
+`classifier.py`:
+from typing import List
+
+import torch
+
+
+class Classifier:
+    """
+    The Classifier: complete the definition of this class template by providing a constructor (i.e. the
+    __init__() function) and the 2 methods train() and predict() below. Please donot change
+     """
+
+
+
+    ############################################# comp
+    def train(self, train_filename: str, dev_filename: str, device: torch.device):
+        """
+        Trains the classifier model on the training set stored in file trainfile
+        PLEASE:
+          - DO NOT CHANGE THE SIGNATURE OF THIS METHOD
+          - PUT THE MODEL and DATA on the specified device! Do not use another device
+          - DO NOT USE THE DEV DATA AS TRAINING EXAMPLES, YOU CAN USE THEM ONLY FOR THE OPTIMIZATION
+         OF MODEL HYPERPARAMETERS
+        """
+
+
+    def predict(self, data_filename: str, device: torch.device) -> List[str]:
+        """Predicts class labels for the input instances in file 'datafile'
+        Returns the list of predicted labels
+        PLEASE:
+          - DO NOT CHANGE THE SIGNATURE OF THIS METHOD
+          - PUT THE MODEL and DATA on the specified device! Do not use another device
+        """
+
+`tester.py`:
+import time, sys
+import numpy as np
+import argparse
+
+import torch
+
+from classifier import Classifier
+
+
+def set_reproducible():
+    # The below is necessary to have reproducible behavior.
+    import random as rn
+    import os
+    os.environ['PYTHONHASHSEED'] = '0'
+    # The below is necessary for starting Numpy generated random numbers
+    # in a well-defined initial state.
+    np.random.seed(17)
+    # The below is necessary for starting core Python generated random numbers
+    # in a well-defined state.
+    rn.seed(12345)
+
+
+
+def load_label_output(filename):
+    with open(filename, 'r', encoding='UTF-8') as f:
+        return [line.strip().split("\t")[0] for line in f if line.strip()]
+
+
+
+def eval_list(glabels, slabels):
+    if (len(glabels) != len(slabels)):
+        print("\nWARNING: label count in system output (%d) is different from gold label count (%d)\n" % (
+        len(slabels), len(glabels)))
+    n = min(len(slabels), len(glabels))
+    incorrect_count = 0
+    for i in range(n):
+        if slabels[i] != glabels[i]: incorrect_count += 1
+    acc = (n - incorrect_count) / n
+    return acc*100
+
+
+
+def train_and_eval(classifier, trainfile, devfile, testfile, run_id, device):
+    print(f"\nRUN: {run_id}")
+    print("  %s.1. Training the classifier..." % str(run_id))
+    classifier.train(trainfile, devfile, device)
+    print()
+    print("  %s.2. Eval on the dev set..." % str(run_id), end="")
+    slabels = classifier.predict(devfile, device)
+    glabels = load_label_output(devfile)
+    devacc = eval_list(glabels, slabels)
+    print(" Acc.: %.2f" % devacc)
+    testacc = -1
+    if testfile is not None:
+        # Evaluation on the test data
+        print("  %s.3. Eval on the test set..." % str(run_id), end="")
+        slabels = classifier.predict(testfile)
+        glabels = load_label_output(testfile)
+        testacc = eval_list(glabels, slabels)
+        print(" Acc.: %.2f" % testacc)
+    print()
+    return (devacc, testacc)
+
+
+if __name__ == "__main__":
+    argparser = argparse.ArgumentParser()
+    argparser.add_argument('-n', '--n_runs', help='Number of runs.', type=int, default=5)
+    argparser.add_argument('-g', '--gpu', help='GPU device id on which to run the model', type=int)
+    args = argparser.parse_args()
+    device_name = "cpu" if args.gpu is None else f"cuda:{args.gpu}"
+    device = torch.device(device_name)
+    n_runs = args.n_runs
+    set_reproducible()
+    datadir = "../data/"
+    trainfile =  datadir + "traindata.csv"
+    devfile =  datadir + "devdata.csv"
+    testfile = None
+    # testfile = datadir + "testdata.csv"
+
+    # Runs
+    start_time = time.perf_counter()
+    devaccs = []
+    testaccs = []
+    for i in range(1, n_runs+1):
+        classifier =  Classifier()
+        devacc, testacc = train_and_eval(classifier, trainfile, devfile, testfile, i, device)
+        devaccs.append(np.round(devacc,2))
+        testaccs.append(np.round(testacc,2))
+    print('\nCompleted %d runs.' % n_runs)
+    total_exec_time = (time.perf_counter() - start_time)
+    print("Dev accs:", devaccs)
+    print("Test accs:", testaccs)
+    print()
+    print("Mean Dev Acc.: %.2f (%.2f)" % (np.mean(devaccs), np.std(devaccs)))
+    print("Mean Test Acc.: %.2f (%.2f)" % (np.mean(testaccs), np.std(testaccs)))
+    print("\nExec time: %.2f s. ( %d per run )" % (total_exec_time, total_exec_time / n_runs))
